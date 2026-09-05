@@ -90,7 +90,8 @@
                 "LinuusObservability\\LinuUsObservability\\LinuUsObservabilityServiceProvider"
             ],
             "aliases": {
-                "LinuUsObservability": "LinuusObservability\\LinuUsObservability\\Facades\\LinuUsObservability"
+                "LinuUsObservability": "LinuusObservability\\LinuUsObservability\\Facades\\LinuUsObservability",
+                "Observability": "LinuusObservability\\LinuUsObservability\\Facades\\Observability"
             }
         }
     },

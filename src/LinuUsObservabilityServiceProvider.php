@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace LinuusObservability\LinuUsObservability;
 
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
-use LinuusObservability\LinuUsObservability\Console\Commands\LinuUsObservabilityCommand;
+use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityAgentCommand;
+use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityInstallCommand;
+use LinuusObservability\LinuUsObservability\Http\Middleware\RecordHttpRequest;
+use LinuusObservability\LinuUsObservability\Support\JsonlEventWriter;
 
 class LinuUsObservabilityServiceProvider extends ServiceProvider
 {
@@ -14,8 +18,9 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/linuus-observability.php', 'linuus-observability');
+        $this->mergeConfigFrom(__DIR__.'/../config/observability.php', 'observability');
 
+        $this->app->singleton(JsonlEventWriter::class);
         $this->app->singleton(LinuUsObservability::class);
     }
 
@@ -24,16 +29,19 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (! $this->app->runningInConsole()) {
-            return;
+        $this->app->afterResolving(Router::class, function (Router $router): void {
+            $router->aliasMiddleware('observability.request', RecordHttpRequest::class);
+        });
+
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/observability.php' => config_path('observability.php'),
+            ], ['linuus-observability', 'linuus-observability-config']);
+
+            $this->commands([
+                ObservabilityInstallCommand::class,
+                ObservabilityAgentCommand::class,
+            ]);
         }
-
-        $this->publishes([
-            __DIR__.'/../config/linuus-observability.php' => config_path('linuus-observability.php'),
-        ], ['linuus-observability', 'linuus-observability-config']);
-
-        $this->commands([
-            LinuUsObservabilityCommand::class,
-        ]);
     }
 }

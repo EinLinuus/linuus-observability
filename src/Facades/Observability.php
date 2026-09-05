@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LinuusObservability\LinuUsObservability\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use LinuusObservability\LinuUsObservability\LinuUsObservability as ObservabilityService;
+use LinuusObservability\LinuUsObservability\LinuUsObservability;
 
 /**
  * @method static void info(string $message, array<string, mixed> $attributes = [])
@@ -13,12 +13,12 @@ use LinuusObservability\LinuUsObservability\LinuUsObservability as Observability
  * @method static void audit(string $message, array<string, mixed> $attributes = [])
  * @method static void record(array<string, mixed> $event)
  *
- * @see ObservabilityService
+ * @see LinuUsObservability
  */
-class LinuUsObservability extends Facade
+class Observability extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return ObservabilityService::class;
+        return LinuUsObservability::class;
     }
 }
