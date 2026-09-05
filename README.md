@@ -72,6 +72,35 @@ Route::middleware('observability.request')->group(function (): void {
 });
 ```
 
+## Capture regular Laravel logs (`Log::info()`)
+
+Add a `linuus-observability` channel in `config/logging.php`:
+
+```php
+'channels' => [
+    // ...
+    'linuus-observability' => [
+        'driver' => 'linuus-observability',
+        'level' => env('LOG_LEVEL', 'debug'),
+    ],
+],
+```
+
+Then include it in your stack channel:
+
+```php
+'stack' => [
+    'driver' => 'stack',
+    'channels' => ['single', 'linuus-observability'],
+],
+```
+
+After that, normal Laravel log calls are captured to the same JSONL stream:
+
+```php
+Log::info('secure note created', ['note_id' => 42]);
+```
+
 ## Custom and audit events
 
 ```php
@@ -135,6 +164,7 @@ Run `php artisan observability:agent` as a long-running process in your host env
 
 ```json
 {"type":"http.request","timestamp":"2026-09-05T11:02:03.456Z","message":"http request completed","level":"info","service.name":"laravel-app","deployment.environment":"production","service.version":"1.0.0","request_id":"6f95e154-2a4f-4de9-9324-fa82440ce34f","http.request.method":"GET","url.path":"/posts/123","http.route":"/posts/{post}","http.response.status_code":200,"duration_ms":12.34,"client.address":"127.0.0.1","user.id":null}
+{"type":"log.message","timestamp":"2026-09-05T11:02:03.999Z","message":"secure note created","level":"info","service.name":"laravel-app","deployment.environment":"production","service.version":"1.0.0","log.channel":"linuus-observability","log.context":{"note_id":42}}
 {"type":"audit.event","timestamp":"2026-09-05T11:02:04.100Z","message":"user.role_changed","level":"info","service.name":"laravel-app","deployment.environment":"production","service.version":"1.0.0","actor.id":1,"target.user_id":55,"role":"admin"}
 ```
 
@@ -142,6 +172,7 @@ Run `php artisan observability:agent` as a long-running process in your host env
 
 - Laravel-side structured event producer (JSONL)
 - Request middleware (`observability.request`)
+- Optional Laravel log channel driver (`linuus-observability`) for regular `Log::*` capture
 - Custom info/warning event API
 - Explicit audit event API
 - Local shipping agent command

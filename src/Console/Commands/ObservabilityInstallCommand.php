@@ -37,6 +37,14 @@ class ObservabilityInstallCommand extends Command
         $this->line("Route::middleware('observability.request')->group(fn () => ...);");
         $this->line('The package does not register this middleware globally by default.');
 
+        $this->newLine();
+        $this->components->info('To capture regular Log::info() entries, add this channel to config/logging.php:');
+        $this->line("'linuus-observability' => [");
+        $this->line("    'driver' => 'linuus-observability',");
+        $this->line("    'level' => env('LOG_LEVEL', 'debug'),");
+        $this->line('],');
+        $this->line("Then include 'linuus-observability' in your stack channel's channels array.");
+
         return self::SUCCESS;
     }
 }

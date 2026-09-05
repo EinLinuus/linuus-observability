@@ -9,6 +9,8 @@ use Throwable;
 
 class LinuUsObservability
 {
+    private bool $reportingFailure = false;
+
     public function __construct(
         private readonly JsonlEventWriter $writer,
     ) {}
@@ -55,7 +57,17 @@ class LinuUsObservability
         try {
             $this->writer->append($payload);
         } catch (Throwable $exception) {
-            report($exception);
+            if ($this->reportingFailure) {
+                return;
+            }
+
+            $this->reportingFailure = true;
+
+            try {
+                report($exception);
+            } finally {
+                $this->reportingFailure = false;
+            }
         }
     }
 

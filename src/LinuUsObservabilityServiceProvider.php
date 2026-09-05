@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace LinuusObservability\LinuUsObservability;
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Log\LogManager;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityAgentCommand;
 use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityInstallCommand;
 use LinuusObservability\LinuUsObservability\Http\Middleware\RecordHttpRequest;
+use LinuusObservability\LinuUsObservability\Logging\CreateObservabilityLogger;
 use LinuusObservability\LinuUsObservability\Support\JsonlEventWriter;
 
 class LinuUsObservabilityServiceProvider extends ServiceProvider
@@ -29,6 +32,12 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->app->afterResolving(LogManager::class, function (LogManager $logManager): void {
+            $logManager->extend('linuus-observability', function (Application $app, array $config) {
+                return $app->make(CreateObservabilityLogger::class)($config);
+            });
+        });
+
         $this->app->afterResolving(Router::class, function (Router $router): void {
             $router->aliasMiddleware('observability.request', RecordHttpRequest::class);
         });
