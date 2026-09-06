@@ -3,6 +3,7 @@ name: Publish to Packagist
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -57,8 +58,8 @@ jobs:
             --fail-with-body \
             --silent \
             --show-error \
-            --user "$PACKAGIST_USERNAME:$PACKAGIST_API_TOKEN" \
             --user-agent "einlinuus/linuus-observability GitHub Actions (mailto:linus.benkner@hey.com)" \
+            --header "Authorization: Bearer $PACKAGIST_USERNAME:$PACKAGIST_API_TOKEN" \
             --header "Content-Type: application/json" \
             --request POST \
             --data "{\"repository\":\"$REPOSITORY_URL\"}" \
