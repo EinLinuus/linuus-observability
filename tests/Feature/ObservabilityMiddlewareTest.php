@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Inertia\Middleware as InertiaMiddleware;
 
 beforeEach(function (): void {
     $this->logPath = observabilityTestLogPath('middleware-events.jsonl');
@@ -78,4 +81,102 @@ it('normalizes url paths and includes route uri when available', function () {
     expect($events)->toHaveCount(1);
     expect($events[0]['url.path'])->toStartWith('/');
     expect($events[0]['http.route'])->toBe('/normalized-path/{id}');
+});
+
+it('classifies Inertia validation redirects as unprocessable responses', function () {
+    Route::middleware([
+        StartSession::class,
+        InertiaMiddleware::class,
+        'observability.request',
+    ])->post('/inertia-posts', static function (Request $request) {
+        $request->validate([
+            'title' => ['required'],
+        ]);
+
+        return response()->noContent();
+    });
+
+    $response = $this
+        ->from('/inertia-posts/create')
+        ->withHeader('X-Inertia', 'true')
+        ->post('/inertia-posts');
+
+    $response
+        ->assertStatus(302)
+        ->assertRedirect('/inertia-posts/create');
+
+    $events = readNdjson($this->logPath);
+
+    expect($events)->toHaveCount(1);
+    expect($events[0])->toMatchArray([
+        'http.response.status_code' => 422,
+        'http.response.redirect_status_code' => 302,
+    ]);
+});
+
+it('keeps successful Inertia redirects as redirects', function () {
+    Route::middleware([
+        StartSession::class,
+        InertiaMiddleware::class,
+        'observability.request',
+    ])->post('/inertia-posts/success', static fn () => redirect('/inertia-posts'));
+
+    $response = $this
+        ->withHeader('X-Inertia', 'true')
+        ->post('/inertia-posts/success');
+
+    $response->assertRedirect('/inertia-posts');
+
+    $events = readNdjson($this->logPath);
+
+    expect($events)->toHaveCount(1);
+    expect($events[0]['http.response.status_code'])->toBe(302);
+    expect($events[0])->not->toHaveKey('http.response.redirect_status_code');
+});
+
+it('keeps non-Inertia validation redirects as redirects', function () {
+    Route::middleware([
+        StartSession::class,
+        'observability.request',
+    ])->post('/traditional-posts', static function (Request $request) {
+        $request->validate([
+            'title' => ['required'],
+        ]);
+
+        return response()->noContent();
+    });
+
+    $response = $this
+        ->from('/traditional-posts/create')
+        ->post('/traditional-posts');
+
+    $response->assertRedirect('/traditional-posts/create');
+
+    $events = readNdjson($this->logPath);
+
+    expect($events)->toHaveCount(1);
+    expect($events[0]['http.response.status_code'])->toBe(302);
+    expect($events[0])->not->toHaveKey('http.response.redirect_status_code');
+});
+
+it('keeps server error status codes for Inertia requests', function () {
+    Route::middleware([
+        StartSession::class,
+        InertiaMiddleware::class,
+        'observability.request',
+    ])->get('/inertia-error', static function (): never {
+        throw new RuntimeException('Inertia server error');
+    });
+
+    $response = $this
+        ->withHeader('X-Inertia', 'true')
+        ->get('/inertia-error');
+
+    $response->assertServerError();
+
+    $events = readNdjson($this->logPath);
+
+    expect($events)->toHaveCount(1);
+    expect($events[0]['http.response.status_code'])->toBe(500);
+    expect($events[0])->not->toHaveKey('http.response.redirect_status_code');
 });

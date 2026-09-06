@@ -38,7 +38,7 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
             });
         });
 
-        $this->app->afterResolving(Router::class, function (Router $router): void {
+        $this->callAfterResolving(Router::class, function (Router $router): void {
             $router->aliasMiddleware('observability.request', RecordHttpRequest::class);
         });
 

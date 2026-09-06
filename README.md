@@ -72,6 +72,12 @@ Route::middleware('observability.request')->group(function (): void {
 });
 ```
 
+### Inertia validation responses
+
+When `inertiajs/inertia-laravel` is installed, the middleware automatically recognizes Inertia validation redirects from their newly flashed Laravel error bag. These events use `422` for `http.response.status_code` so validation failures are not classified as successful redirects, while `http.response.redirect_status_code` preserves the observed `302` or `303`.
+
+Successful Inertia redirects, non-Inertia responses, and server errors keep their original status code. No Inertia configuration is required, and validation messages or submitted values are not recorded.
+
 ## Capture regular Laravel logs (`Log::info()`)
 
 Add a `linuus-observability` channel in `config/logging.php`:
