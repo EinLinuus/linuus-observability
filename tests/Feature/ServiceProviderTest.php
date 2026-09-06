@@ -13,5 +13,9 @@ it('resolves the singleton and merges config', function () {
 it('registers package commands', function () {
     $commands = array_keys(app(Kernel::class)->all());
 
-    expect($commands)->toContain('observability:install', 'observability:agent');
+    expect($commands)->toContain(
+        'observability:install',
+        'observability:agent',
+        'observability:restart-agent',
+    );
 });

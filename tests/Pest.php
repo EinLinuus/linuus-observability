@@ -16,6 +16,11 @@ function observabilityAgentStatePath(): string
     return storage_path('framework/cache/observability-agent.json');
 }
 
+function observabilityAgentRestartPath(): string
+{
+    return storage_path('framework/cache/observability-agent.restart');
+}
+
 /**
  * @param  array<int, string>  $paths
  */

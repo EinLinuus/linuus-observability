@@ -10,8 +10,10 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityAgentCommand;
 use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityInstallCommand;
+use LinuusObservability\LinuUsObservability\Console\Commands\ObservabilityRestartAgentCommand;
 use LinuusObservability\LinuUsObservability\Http\Middleware\RecordHttpRequest;
 use LinuusObservability\LinuUsObservability\Logging\CreateObservabilityLogger;
+use LinuusObservability\LinuUsObservability\Support\AgentRestartSignal;
 use LinuusObservability\LinuUsObservability\Support\JsonlEventWriter;
 
 class LinuUsObservabilityServiceProvider extends ServiceProvider
@@ -23,6 +25,7 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/observability.php', 'observability');
 
+        $this->app->singleton(AgentRestartSignal::class);
         $this->app->singleton(JsonlEventWriter::class);
         $this->app->singleton(LinuUsObservability::class);
     }
@@ -50,6 +53,7 @@ class LinuUsObservabilityServiceProvider extends ServiceProvider
             $this->commands([
                 ObservabilityInstallCommand::class,
                 ObservabilityAgentCommand::class,
+                ObservabilityRestartAgentCommand::class,
             ]);
         }
     }

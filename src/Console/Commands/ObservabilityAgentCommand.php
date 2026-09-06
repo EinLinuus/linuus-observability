@@ -7,6 +7,7 @@ namespace LinuusObservability\LinuUsObservability\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use LinuusObservability\LinuUsObservability\Support\AgentRestartSignal;
 
 class ObservabilityAgentCommand extends Command
 {
@@ -14,10 +15,16 @@ class ObservabilityAgentCommand extends Command
 
     protected $description = 'Send observability JSONL events to the configured endpoint.';
 
+    public function __construct(private readonly AgentRestartSignal $restartSignal)
+    {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $flushIntervalSeconds = max(0, (int) config('observability.agent.flush_interval_seconds', 5));
         $retrySleepSeconds = max(0, (int) config('observability.agent.retry_sleep_seconds', 10));
+        $restartMarker = $this->restartSignal->current();
 
         do {
             $batch = $this->readBatch();
@@ -27,16 +34,18 @@ class ObservabilityAgentCommand extends Command
 
                 if ($wasFlushed) {
                     $this->storeOffset($batch['next_offset']);
-                } elseif (! $this->option('once')) {
-                    sleep($retrySleepSeconds);
+                } elseif (! $this->option('once') && $this->wait($retrySleepSeconds, $restartMarker)) {
+                    break;
                 }
             }
 
-            if ($this->option('once')) {
+            if ($this->option('once') || $this->restartSignal->hasChanged($restartMarker)) {
                 break;
             }
 
-            sleep($flushIntervalSeconds);
+            if ($this->wait($flushIntervalSeconds, $restartMarker)) {
+                break;
+            }
         } while (true);
 
         return self::SUCCESS;
@@ -181,5 +190,18 @@ class ObservabilityAgentCommand extends Command
     private function statePath(): string
     {
         return storage_path('framework/cache/observability-agent.json');
+    }
+
+    private function wait(int $seconds, string $restartMarker): bool
+    {
+        for ($remaining = $seconds; $remaining > 0; $remaining--) {
+            if ($this->restartSignal->hasChanged($restartMarker)) {
+                return true;
+            }
+
+            sleep(1);
+        }
+
+        return $this->restartSignal->hasChanged($restartMarker);
     }
 }

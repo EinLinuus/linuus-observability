@@ -166,6 +166,18 @@ Run `php artisan observability:agent` as a long-running process in your host env
 - **Laravel Forge:** Daemon command `php artisan observability:agent`
 - **Laravel Cloud:** Worker/continuous process command `php artisan observability:agent`
 
+### Restart the agent after a Forge deployment
+
+Add this command to your Forge deployment script after Composer has installed the newly deployed package version:
+
+```bash
+php artisan observability:restart-agent
+```
+
+The command asks the running agent to finish its current flush and exit successfully. Forge's daemon supervisor then starts it again with the newly deployed code.
+
+When first upgrading from a package version that does not support `observability:restart-agent`, restart the Forge daemon once manually. Future deployments can use the deployment-script command.
+
 ## Example log lines
 
 ```json
