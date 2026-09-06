@@ -41,3 +41,17 @@ Run all tests:
 ```bash
 composer test
 ```
+
+## Releases
+
+Publishing a GitHub release publishes the package to Packagist through the
+`Publish to Packagist` workflow.
+
+Configure these GitHub Actions repository secrets before publishing:
+
+- `PACKAGIST_USERNAME`: the Packagist account username.
+- `PACKAGIST_API_TOKEN`: the Packagist API token.
+
+The first release registers the package and requires the main Packagist API
+token. After that succeeds, replace the secret with the safe API token, which
+has sufficient access for subsequent package updates.

@@ -1,0 +1,65 @@
+name: Publish to Packagist
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packagist-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+      PACKAGIST_API_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
+      PACKAGE_METADATA_URL: https://repo.packagist.org/p2/einlinuus/linuus-observability.json
+      REPOSITORY_URL: https://github.com/${{ github.repository }}
+
+    steps:
+      - name: Validate Packagist credentials
+        run: |
+          if [[ -z "$PACKAGIST_USERNAME" || -z "$PACKAGIST_API_TOKEN" ]]; then
+            echo "::error::Configure the PACKAGIST_USERNAME and PACKAGIST_API_TOKEN repository secrets."
+            exit 1
+          fi
+
+      - name: Publish package
+        run: |
+          status=$(curl \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --write-out "%{http_code}" \
+            --user-agent "einlinuus/linuus-observability GitHub Actions (mailto:linus.benkner@hey.com)" \
+            "$PACKAGE_METADATA_URL")
+
+          case "$status" in
+            200)
+              endpoint="update-package"
+              ;;
+            404)
+              endpoint="create-package"
+              ;;
+            *)
+              echo "::error::Packagist metadata request returned HTTP $status."
+              exit 1
+              ;;
+          esac
+
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --user "$PACKAGIST_USERNAME:$PACKAGIST_API_TOKEN" \
+            --user-agent "einlinuus/linuus-observability GitHub Actions (mailto:linus.benkner@hey.com)" \
+            --header "Content-Type: application/json" \
+            --request POST \
+            --data "{\"repository\":\"$REPOSITORY_URL\"}" \
+            "https://packagist.org/api/$endpoint"
